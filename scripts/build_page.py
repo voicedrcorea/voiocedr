@@ -40,7 +40,11 @@ def parse(path):
         "keyword": meta.get("keyword", ""),
         "target": meta.get("target", ""),
         "structure": meta.get("structure", ""),
-        "titles": meta.get("titles", []),
+        "titles": [
+            {"type": s.split("|", 1)[0].strip(), "text": s.split("|", 1)[1].strip()}
+            if "|" in s else {"type": "", "text": s}
+            for s in meta.get("titles", [])
+        ],
         "flags": meta.get("flags", []) if isinstance(meta.get("flags"), list) else [],
         "chars": len(plain),
         "blocks": len(blocks),
@@ -156,8 +160,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .titles li{display:flex;align-items:center;gap:12px;background:var(--surface);
   padding:11px 13px}
 .titles li:first-child{background:var(--accent-soft)}
-.rank{font-family:var(--mono);font-size:11px;color:var(--faint);flex:0 0 auto}
-.titles li:first-child .rank{color:var(--accent)}
+.rank{font-family:var(--mono);font-size:11px;color:var(--faint);flex:0 0 42px;
+  letter-spacing:.02em}
+.tlen{font-family:var(--mono);font-size:11px;color:var(--faint);flex:0 0 auto;
+  font-variant-numeric:tabular-nums}
+.titles li:first-child .rank{color:var(--accent);font-weight:700}
 .ttxt{flex:1;font-size:14.5px;line-height:1.5}
 .titles li:first-child .ttxt{font-weight:700}
 
@@ -221,7 +228,7 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
   <div class="mast">
     <div>
       <h1>보이스닥터 원고함</h1>
-      <p class="sub">네이버 블로그 <b>blog.naver.com/voicedr</b> · 매일 아침 3편 갱신</p>
+      <p class="sub">네이버 블로그 <b>blog.naver.com/voicedr</b> · 월·화 아침 3편 갱신</p>
     </div>
     <div class="stamp"><b id="d-date"></b>오늘의 원고</div>
   </div>
@@ -231,11 +238,23 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
   <div class="howto">
     <h2>붙여넣는 순서</h2>
     <ol>
-      <li>제목 후보 중 하나를 골라 <b>복사</b> → 네이버 글쓰기 제목란에 붙여넣기</li>
+      <li>원고 3편 중 오늘 올릴 것을 <b>고르기</b></li>
+      <li>제목 후보 6개 중 하나를 골라 <b>복사</b> → 네이버 글쓰기 제목란에 붙여넣기</li>
       <li><b>본문 복사</b> → 스마트에디터 본문에 붙여넣기 (줄바꿈 그대로 들어갑니다)</li>
       <li>이미지 지시에 따라 사진과 비포&amp;애프터 영상을 자리에 넣기</li>
       <li>태그 복사 후 발행 또는 예약</li>
     </ol>
+  </div>
+
+  <div class="howto" style="border-left-color:var(--line-strong)">
+    <h2 style="color:var(--muted)">제목 후보 6개를 나눈 기준</h2>
+    <p style="margin:0;color:var(--muted);font-size:13.5px;line-height:1.85">
+      네이버는 VIEW 탭 대신 <b>스마트블록</b>으로 검색 의도별 결과를 나눕니다.
+      같은 키워드도 의도가 갈리므로 유형이 다른 6개를 뽑았습니다.
+      <b>원인형</b>은 지금 상위노출 중인 글들의 형태라 1순위로 두었고,
+      나머지 5개는 아직 잡지 못한 블록을 노리는 확장용입니다.
+      전부 메인 키워드를 맨 앞에 1회만 넣고 20~30자로 맞췄습니다.
+    </p>
   </div>
 
   <div class="gapctl">
@@ -322,18 +341,19 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
     var ul=el('ul','titles');
     d.titles.forEach(function(t,i){
       var li=el('li');
-      li.appendChild(el('span','rank',(i+1)+'순위'));
-      li.appendChild(el('span','ttxt',t));
-      var b=el('button','btn','제목 복사');
+      li.appendChild(el('span','rank',t.type||((i+1)+'순위')));
+      li.appendChild(el('span','ttxt',t.text));
+      li.appendChild(el('span','tlen',t.text.length+'자'));
+      var b=el('button','btn','복사');
       b.type='button';
-      b.addEventListener('click',function(){copy(t,b);});
+      b.addEventListener('click',function(){copy(t.text,b);});
       li.appendChild(b); ul.appendChild(li);
     });
     h.appendChild(ul);
 
     var m=el('div','metrics');
     [['글자수',d.chars,'자 (공백 제외)'],['줄바꿈 블록',d.blocks,'개'],
-     ['제목 후보',d.titles.length,'개']].forEach(function(x){
+     ['제목 후보',d.titles.length,'개 (유형별)']].forEach(function(x){
       var w=el('div','metric');
       w.appendChild(el('span','k',x[0]));
       var v=el('span','v',String(x[1]));
