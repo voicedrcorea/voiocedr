@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""오늘 원고를 전달용 웹페이지(HTML) 하나로 묶는다.
+"""원고를 전달용 웹페이지(HTML) 하나로 묶는다.
+
+drafts/ 아래의 모든 날짜를 담고, 페이지에서 날짜를 골라 볼 수 있게 한다.
+인자로 날짜를 주면 그 날짜가 처음 열릴 때 선택된다 (기본값은 가장 최근 날짜).
 
 사용:
-    python3 scripts/build_page.py 2026-09-05
+    python3 scripts/build_page.py            # 최신 날짜가 열린 상태
+    python3 scripts/build_page.py 2026-09-05 # 그 날짜가 열린 상태
 결과:
     delivery/page.html   (Artifact 로 발행할 파일)
 """
@@ -12,10 +16,18 @@ import os
 import re
 import sys
 
-DATE = sys.argv[1] if len(sys.argv) > 1 else None
-if not DATE:
-    dirs = sorted(d for d in glob.glob("drafts/*") if os.path.isdir(d))
-    DATE = os.path.basename(dirs[-1])
+ALL_DATES = sorted(
+    os.path.basename(d) for d in glob.glob("drafts/*")
+    if os.path.isdir(d) and re.match(r"^\d{4}-\d{2}-\d{2}$", os.path.basename(d))
+)
+if not ALL_DATES:
+    sys.exit("drafts/ 아래에 날짜 폴더가 없습니다.")
+
+DATE = sys.argv[1] if len(sys.argv) > 1 else ALL_DATES[-1]
+if DATE not in ALL_DATES:
+    sys.exit(f"{DATE} 폴더가 없습니다. 가능한 날짜: {', '.join(ALL_DATES)}")
+
+WEEKDAY = ["월", "화", "수", "목", "금", "토", "일"]
 
 
 def parse(path):
@@ -54,7 +66,25 @@ def parse(path):
     }
 
 
-drafts = [parse(p) for p in sorted(glob.glob(f"drafts/{DATE}/*.md"))]
+def weekday_of(date_str):
+    y, m, d = (int(x) for x in date_str.split("-"))
+    # Zeller 없이 datetime 사용
+    import datetime
+    return WEEKDAY[datetime.date(y, m, d).weekday()]
+
+
+days = []
+for ds in ALL_DATES:
+    items = [parse(p) for p in sorted(glob.glob(f"drafts/{ds}/*.md"))]
+    if not items:
+        continue
+    days.append({
+        "date": ds,
+        "weekday": weekday_of(ds),
+        "drafts": items,
+        "flags": sum(len(x["flags"]) for x in items),
+    })
+days.reverse()  # 최신이 앞으로
 
 queue_ready = 0
 if os.path.exists("keywords/queue.tsv"):
@@ -62,8 +92,7 @@ if os.path.exists("keywords/queue.tsv"):
         if line.split("\t")[-1:] == ["ready"]:
             queue_ready += 1
 
-flag_count = sum(len(d["flags"]) for d in drafts)
-DATA = json.dumps({"date": DATE, "drafts": drafts, "queueReady": queue_ready},
+DATA = json.dumps({"selected": DATE, "days": days, "queueReady": queue_ready},
                   ensure_ascii=False)
 
 HTML = """<title>보이스닥터 원고함</title>
@@ -116,6 +145,21 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .stamp{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;
   line-height:1.9;font-variant-numeric:tabular-nums}
 .stamp b{display:block;font-size:19px;color:var(--ink);letter-spacing:.02em}
+
+/* date picker */
+.dates{display:flex;flex-wrap:wrap;gap:7px;margin:20px 0 0}
+.dates button{appearance:none;cursor:pointer;font-family:var(--mono);font-size:12.5px;
+  letter-spacing:.02em;padding:7px 12px;border-radius:2px;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;gap:7px;
+  transition:background .12s,color .12s,border-color .12s}
+.dates button:hover{border-color:var(--accent);color:var(--accent)}
+.dates button[aria-current="true"]{background:var(--accent);border-color:var(--accent);
+  color:#fff;font-weight:500}
+.dates .wd{font-family:var(--body);font-size:11.5px;opacity:.75}
+.dates .dot{width:5px;height:5px;border-radius:50%;background:var(--warn);flex:0 0 auto}
+.dates button[aria-current="true"] .dot{background:#fff}
+.dates .more{color:var(--faint);font-size:12px;align-self:center;padding-left:4px}
+.dates button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* status strip */
 .strip{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0}
@@ -230,8 +274,10 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
       <h1>보이스닥터 원고함</h1>
       <p class="sub">네이버 블로그 <b>blog.naver.com/voicedr</b> · 월·화 아침 3편 갱신</p>
     </div>
-    <div class="stamp"><b id="d-date"></b>오늘의 원고</div>
+    <div class="stamp"><b id="d-date"></b><span id="d-sub">선택한 날짜</span></div>
   </div>
+
+  <nav class="dates" id="dates" aria-label="원고 날짜 선택"></nav>
 
   <div class="strip" id="strip"></div>
 
@@ -306,16 +352,42 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
     return d.body.join('\\n'.repeat(gap+1));
   }
 
-  // status strip
-  var flags = D.drafts.reduce(function(a,d){return a+d.flags.length;},0);
-  var strip = document.getElementById('strip');
-  [['ok','원고 '+D.drafts.length+'편 생성'],
-   ['ok','유사문서 검사 통과'],
-   [flags?'warn':'ok', flags? '검수 필요 '+flags+'건' : '검수 신호 없음'],
-   ['','키워드 잔여 '+D.queueReady+'개']].forEach(function(p){
-    var n=el('span','pill '+p[0],p[1]); strip.appendChild(n);
+  var day = D.days.filter(function(x){return x.date===D.selected;})[0] || D.days[0];
+
+  function paintHeader(){
+    document.getElementById('d-date').textContent = day.date;
+    document.getElementById('d-sub').textContent =
+      (day===D.days[0] ? '최신 원고' : '지난 원고') + ' · ' + day.weekday + '요일';
+    var strip = document.getElementById('strip');
+    strip.textContent='';
+    [['ok','원고 '+day.drafts.length+'편'],
+     ['ok','유사문서 검사 통과'],
+     [day.flags?'warn':'ok', day.flags? '검수 필요 '+day.flags+'건' : '검수 신호 없음'],
+     ['','키워드 잔여 '+D.queueReady+'개']].forEach(function(pz){
+      strip.appendChild(el('span','pill '+pz[0],pz[1]));
+    });
+  }
+  document.getElementById('qinfo').textContent='전체 '+D.days.length+'일치 보관 중';
+
+  // date picker
+  var datesEl=document.getElementById('dates');
+  D.days.forEach(function(dd){
+    var b=el('button'); b.type='button';
+    b.appendChild(document.createTextNode(dd.date.slice(5)));
+    b.appendChild(el('span','wd',dd.weekday));
+    if(dd.flags) b.appendChild(el('span','dot'));
+    b.addEventListener('click',function(){
+      day=dd; D.selected=dd.date;
+      [].forEach.call(datesEl.children,function(x){
+        x.setAttribute('aria-current', x===b ? 'true':'false');});
+      paintHeader(); renderDay();
+      document.getElementById('arts').scrollIntoView({block:'start',
+        behavior: matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+    });
+    b.setAttribute('aria-current', dd===day ? 'true':'false');
+    datesEl.appendChild(b);
   });
-  document.getElementById('qinfo').textContent='키워드 큐 잔여 '+D.queueReady+'개';
+  paintHeader();
 
   // gap segment
   var seg=document.getElementById('seg');
@@ -329,7 +401,9 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
   });
 
   var host=document.getElementById('arts');
-  D.drafts.forEach(function(d){
+  function renderDay(){
+  host.textContent='';
+  day.drafts.forEach(function(d){
     var art=el('article','art'), h=el('header');
 
     var line=el('div','slotline');
@@ -402,10 +476,15 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
     art.appendChild(tail);
     host.appendChild(art);
   });
+  }
+  renderDay();
 })();
 </script>
 """
 
 os.makedirs("delivery", exist_ok=True)
 open("delivery/page.html", "w", encoding="utf-8").write(HTML.replace("__DATA__", DATA))
-print(f"delivery/page.html 생성 — {DATE}, 원고 {len(drafts)}편, 검수 신호 {flag_count}건")
+sel = [d for d in days if d["date"] == DATE][0]
+print(f"delivery/page.html 생성 — 보관 {len(days)}일치, "
+      f"열릴 날짜 {DATE}({sel['weekday']}) 원고 {len(sel['drafts'])}편, "
+      f"검수 신호 {sel['flags']}건")
