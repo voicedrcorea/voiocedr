@@ -109,6 +109,12 @@ def longest_match(a, b_shingles, n):
     return best_len, best_str
 
 
+def short(path):
+    """corpus/x.md 또는 2026-09-05/1.md 처럼 구분 가능한 짧은 이름."""
+    parts = os.path.normpath(path).split(os.sep)
+    return os.sep.join(parts[-2:]) if len(parts) >= 2 else path
+
+
 def references(target, extra):
     refs = sorted(glob.glob("corpus/*.md"))
     refs += sorted(glob.glob("drafts/*/*.md"))
@@ -137,7 +143,7 @@ def main():
             if length >= args.n:
                 failed = True
                 worst = max(worst, length)
-                print(f"   ✗ {os.path.basename(ref)}  {length}자 일치")
+                print(f"   ✗ {short(ref)}  {length}자 일치")
                 print(f'      "{matched[:60]}{"..." if len(matched) > 60 else ""}"')
         if worst == 0:
             print(f"   ✓ 통과 — {args.n}자 이상 연속 일치 없음")
