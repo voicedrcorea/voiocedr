@@ -12,9 +12,22 @@
 
 읽어야 할 순서:
 1. `brand/guardrails.md` — 가장 강한 규칙. 톤보다 우선한다
-2. `brand/tone-and-manner.md` — 실측된 말투·구조·분량
-3. `corpus/*.md` — 톤의 정답지
-4. `brand/profile.md` — CTA 정보
+2. `brand/tone-and-manner.md` **H섹션** — 사장님이 고쳐 발행한 것에서 뽑은 규칙.
+   실측값(A~F)보다 우선한다
+3. `brand/tone-and-manner.md` A~F — 실측된 말투·구조·분량
+4. `corpus/*.md` — 톤의 정답지
+5. `brand/profile.md` — CTA 정보
+
+발행본이 들어오면 `scripts/compare_revision.py` 로 초안과 비교해
+무엇을 고치셨는지 확인하고, 3편 이상 반복되는 패턴만 H섹션에 규칙으로 옮긴다.
+
+## 네이버 접근 제한
+
+이 환경은 네이버 도메인이 조직 네트워크 정책으로 차단되어 있다
+(`blog.naver.com` `search.naver.com` `openapi.naver.com` 모두 CONNECT 403).
+발행 글이나 상위노출 문서를 직접 열어볼 수 없으므로 본문을 받아야 한다.
+매 실행마다 접근 가능 여부를 다시 확인하고, 막혀 있으면 그 사실을 보고에 남긴다.
+추측으로 트렌드를 지어내지 않는다.
 
 ## 절대 규칙
 
