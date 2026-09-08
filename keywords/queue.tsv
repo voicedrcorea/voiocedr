@@ -4,7 +4,7 @@ date	keyword	intent	source_seed	status
 2026-09-05	복식호흡 하는 법	방법	복식호흡	in_use
 2026-09-07	성우 발성	직업군	성우	in_use
 	가수 발성 호흡	직업군	가수	ready
-	유튜버 목소리	직업군	유튜버	ready
+2026-09-08	유튜버 목소리	직업군	유튜버	in_use
 	영업직 목소리	직업군	영업·상담	ready
 	교사 목소리 쉼	직업군	강사·교사	ready
 	상담사 목소리 피로	직업군	상담사	ready
@@ -14,7 +14,7 @@ date	keyword	intent	source_seed	status
 	목이 자주 쉼	증상	쉼	ready
 	발음 새는 증상	증상	발음	ready
 	말이 빨라지는 습관	증상	속도	ready
-	콧소리	증상	콧소리	ready
+2026-09-08	콧소리	증상	콧소리	in_use
 	목소리가 가늘어요	증상	가는 목소리	ready
 	사투리 억양 교정	증상	억양	ready
 	말할 때 숨 부족	증상	호흡 부족	ready
@@ -23,7 +23,7 @@ date	keyword	intent	source_seed	status
 	집에서 하는 발성연습	방법	발성연습	ready
 	호흡근 훈련이란	방법	호흡근	ready
 	발성과 자세의 관계	방법	자세	ready
-	목소리 톤 낮추는 법	방법	톤	ready
+2026-09-08	목소리 톤 낮추는 법	방법	톤	in_use
 	성대 부담 줄이는 법	방법	성대	ready
 	보이스트레이닝 기간	방법	비용·기간	ready
 	보이스트레이닝 효과	방법	효과	ready
