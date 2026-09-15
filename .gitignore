@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# 랜딩 페이지에 끼워 넣는 사진 (용량이 크고 인물 사진이다)
+landing/images/*
+!landing/images/.gitkeep
+landing/*.inlined.html
