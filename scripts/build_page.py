@@ -272,7 +272,7 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
   <div class="mast">
     <div>
       <h1>보이스닥터 원고함</h1>
-      <p class="sub">네이버 블로그 <b>blog.naver.com/voicedr</b> · 월·화 아침 3편 갱신</p>
+      <p class="sub">네이버 블로그 <b>blog.naver.com/voicedr</b> · 월·화 아침 5편 갱신</p>
     </div>
     <div class="stamp"><b id="d-date"></b><span id="d-sub">선택한 날짜</span></div>
   </div>
@@ -284,7 +284,7 @@ footer.foot code{font-family:var(--mono);color:var(--muted)}
   <div class="howto">
     <h2>붙여넣는 순서</h2>
     <ol>
-      <li>원고 3편 중 오늘 올릴 것을 <b>고르기</b></li>
+      <li>원고 5편 중 오늘 올릴 것을 <b>고르기</b></li>
       <li>제목 후보 6개 중 하나를 골라 <b>복사</b> → 네이버 글쓰기 제목란에 붙여넣기</li>
       <li><b>본문 복사</b> → 스마트에디터 본문에 붙여넣기 (줄바꿈 그대로 들어갑니다)</li>
       <li>이미지 지시에 따라 사진과 비포&amp;애프터 영상을 자리에 넣기</li>
