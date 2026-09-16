@@ -182,29 +182,52 @@ def main():
             cols = line.split("\t")
             if not cols or len(cols) < 2 or not cols[1].strip():
                 continue
-            st = cols[-1]
+            # 상태는 5번째 열이다. 맨 뒤를 보면 note 를 상태로 읽는다
+            st = cols[4] if len(cols) > 4 else cols[-1]
             if st == "in_use":
                 keep.append((cols[0], cols[1], cols[2] if len(cols) > 2 else "",
                              "", "in_use", "사용됨"))
+            elif st == "ready" and len(cols) > 3 and cols[3].strip():
+                # 검색량이 붙어 있으면 근거가 있는 것이다. 그대로 둔다
+                keep.append((cols[0], cols[1], cols[2], cols[3], "ready",
+                             cols[5] if len(cols) > 5 else ""))
             elif st in ("ready", "hold"):
                 parked.append(("", cols[1], cols[2] if len(cols) > 2 else "",
-                               "", "hold", "검색량 근거 없음 — 키워드도구 조회 대기"))
+                               "", "hold", cols[5] if len(cols) > 5
+                               else "검색량 근거 없음 — 키워드도구 조회 대기"))
     used = {r[1] for r in keep} | {r[1] for r in parked}
 
-    out = ["date\tkeyword\taxis\tinflow_pct\tstatus\tnote"]
+    # defend 는 기존 행을 덮어써야 한다.
+    # 검색량만 보고 들어온 ready 행이 알고 보니 이미 우리가 잡고 있는
+    # 키워드라면, 그대로 두면 스킬이 그걸 골라 자기 글을 밀어낸다
+    defend = {kw: note for kw, _, _, status, note in rows if status == "defend"}
+    fixed = 0
+    merged = []
+    for r in keep:
+        if r[1] in defend:
+            merged.append((r[0], r[1], r[2], r[3], "defend", defend[r[1]]))
+            fixed += 1
+        else:
+            merged.append(r)
+    keep = merged
+
+    out = ["date\tkeyword\taxis\tvolume\tstatus\tnote"]
     out += ["\t".join(r) for r in keep]
     added = 0
     for kw, axis, pct, status, note in rows:
         if kw in used:
             continue
-        out.append(f"\t{kw}\t{axis}\t{pct}\t{status}\t{note}")
+        out.append(f"\t{kw}\t{axis}\t\t{status}\t{note} (유입 {pct}%)")
         added += 1
 
     out += ["\t".join(r) for r in parked]
 
     ready = sum(1 for l in out[1:] if "\tready\t" in l)
-    print(f"\n큐 병합: 기존 in_use {len(keep)}개 유지 "
+    used_n = sum(1 for r in keep if r[4] == "in_use")
+    print(f"\n큐 병합: 기존 {len(keep)}행 유지(사용됨 {used_n}) "
           f"+ 유입 근거 {added}개 추가 + 근거없음 {len(parked)}개 hold 로 이월")
+    print(f"검색량만 보고 ready 였던 {fixed}개를 defend 로 되돌렸습니다 "
+          f"— 이미 잡고 있는 키워드입니다")
     print(f"ready {ready}개 — 하루 5편 기준 {ready/10:.1f}주분")
     if args.dry_run:
         print("(--dry-run: 파일을 쓰지 않았습니다)")
